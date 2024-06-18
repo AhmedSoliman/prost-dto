@@ -196,13 +196,6 @@ impl Skip for ProtoVariantInfo {
     }
 }
 
-// Experiment
-#[derive(Debug, FromDeriveInput)]
-#[darling(attributes(prost))]
-pub(crate) struct ProstMessageInto {
-    pub ident: syn::Ident,
-}
-
 #[allow(unused)]
 #[derive(Debug, Clone, FromField)]
 #[darling(attributes(prost), forward_attrs(doc), allow_unknown_fields)]

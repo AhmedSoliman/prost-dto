@@ -3,13 +3,11 @@ use proc_macro2::TokenStream;
 use syn::DeriveInput;
 mod attributes;
 mod enum_codegen;
-mod prost_ext;
 mod proto_conv;
 mod struct_codegen;
-pub mod traits;
 mod utils;
 
-use self::attributes::{Direction, FromProtoInfo, IntoProtoInfo, ProstMessageInto, ProtoInfo};
+use self::attributes::{Direction, FromProtoInfo, IntoProtoInfo, ProtoInfo};
 
 pub fn derive_into_proto(input: DeriveInput) -> TokenStream {
     let into_info = match IntoProtoInfo::from_derive_input(&input) {
@@ -37,16 +35,6 @@ fn derive_proto(
 ) -> TokenStream {
     let tokens = ProtoInfo::from_derive_input(&input)
         .and_then(|info| proto_conv::expand_proto_conv(direction, info, input));
-
-    match tokens {
-        Ok(tokens) => tokens,
-        Err(e) => e.write_errors(),
-    }
-}
-
-pub fn derive_prost_message_ext(input: DeriveInput) -> TokenStream {
-    let tokens = ProstMessageInto::from_derive_input(&input)
-        .and_then(|info| prost_ext::expand_prost_ext(info, input));
 
     match tokens {
         Ok(tokens) => tokens,
