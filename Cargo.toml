@@ -1,0 +1,44 @@
+[workspace]
+members = [".", "prost-dto-derive", "prost-dto-core"]
+resolver = "2"
+
+[workspace.package]
+license = "BSD-2-Clause-Patent"
+version = "0.1.0"
+edition = "2021"
+authors = ["Ahmed Farghal <me@asoli.dev>", "Mohamed Bassem <me@mbassem.com>"]
+description = "Data transfer object conversion macros for prost"
+documentation = "https://docs.rs/prost-dto"
+repository = "https://github.com/AhmedSoliman/prost-dto"
+homepage = "https://github.com/AhmedSoliman/prost-dto"
+rust-version = "1.75.0"
+
+[workspace.dependencies]
+prost-dto-core = { path = "prost-dto-core", version = "0.1.0" }
+prost-dto-derive = { path = "prost-dto-derive", version = "0.1.0" }
+
+[package]
+name = "prost-dto"
+authors.workspace = true
+description.workspace = true
+documentation.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[[test]]
+name = "tests"
+path = "tests/tests.rs"
+
+[dependencies]
+# Internal dependencies
+prost-dto-core = { workspace = true }
+prost-dto-derive = { workspace = true }
+
+once_cell = "1.19"
+
+[dev-dependencies]
+trybuild = { version = "1.0", features = ["diff"] }
