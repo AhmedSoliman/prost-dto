@@ -28,6 +28,16 @@ pub(crate) fn vec_segment(path: &syn::Path) -> Option<&syn::PathSegment> {
 }
 
 pub(crate) fn map_segment(path: &syn::Path) -> Option<&syn::PathSegment> {
+    static MAP: &[&str] = &[
+        "HashMap|",
+        "std|collections|HashMap|",
+        "BTreeMap|",
+        "std|collections|BTreeMap|",
+    ];
+    extract_generic_type_segment(path, MAP)
+}
+
+pub(crate) fn hashmap_segment(path: &syn::Path) -> Option<&syn::PathSegment> {
     static MAP: &[&str] = &["HashMap|", "std|collections|HashMap|"];
     extract_generic_type_segment(path, MAP)
 }

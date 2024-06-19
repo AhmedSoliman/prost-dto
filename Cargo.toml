@@ -3,8 +3,8 @@ members = [".", "prost-dto-derive", "prost-dto-core"]
 resolver = "2"
 
 [workspace.package]
-license = "BSD-2-Clause-Patent"
-version = "0.0.1"
+license = "BSD-2-Clause"
+version = "0.0.2"
 edition = "2021"
 authors = ["Ahmed Farghal <me@asoli.dev>", "Mohamed Bassem <me@mbassem.com>"]
 description = "Data transfer object conversion macros for prost"
@@ -14,8 +14,8 @@ homepage = "https://github.com/AhmedSoliman/prost-dto"
 rust-version = "1.75.0"
 
 [workspace.dependencies]
-prost-dto-core = { path = "prost-dto-core", version = "0.0.1" }
-prost-dto-derive = { path = "prost-dto-derive", version = "0.0.1" }
+prost-dto-core = { path = "prost-dto-core", version = "0.0.2" }
+prost-dto-derive = { path = "prost-dto-derive", version = "0.0.2" }
 
 [package]
 name = "prost-dto"

@@ -4,7 +4,9 @@ use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
 
 use crate::attributes::{Direction, FromProtoFieldInfo, IntoProtoFieldInfo, ProtoFieldInfo, Skip};
-use crate::utils::{extract_inner_type_from_container, map_segment, option_segment, vec_segment};
+use crate::utils::{
+    extract_inner_type_from_container, hashmap_segment, map_segment, option_segment, vec_segment,
+};
 
 impl ProtoFieldInfo {
     pub(crate) fn gen_tokens(
@@ -49,7 +51,7 @@ impl ProtoFieldInfo {
         //  - IntoProto + required: .into() should handle it.
         //  - FromProto + required: our_name: incoming.unwrap()
         //
-        // - HashMap<K, V>:
+        // - HashMap<K, V>: (Same rules apply to BTreeMap)
         //  - Protobuf's map keys only support scaler types, we only need to map
         //    the values
         //  - IntoProto + required: .into() should handle it.
@@ -79,7 +81,9 @@ impl ProtoFieldInfo {
 
         let option_type = extract_inner_type_from_container(&self.ty, option_segment);
         let vec_type = extract_inner_type_from_container(&self.ty, vec_segment);
+        // match both HashMap and BTreeMap
         let map_type = extract_inner_type_from_container(&self.ty, map_segment);
+        let hashmap_type = extract_inner_type_from_container(&self.ty, hashmap_segment);
 
         // 1. Do we need to unwrap the input before processing? We do that if
         // the field is `required` and our local type is not `Option<T>` when
@@ -165,18 +169,24 @@ impl ProtoFieldInfo {
                 .wrap_with_mapper(direction, quote! { v })
                 .map(|mapper| {
                     quote_spanned! { span =>
-                            |(k, v)| (k, #mapper)
+                            |(k, v)| (k.into(), #mapper)
                     }
                 })
                 // If there is no mapper, we just map the inner value with any
                 // existing Into impl.
                 .unwrap_or_else(|| {
                     quote_spanned! { span =>
-                        |(k, v)| (k, v.into())
+                        |(k, v)| (k.into(), v.into())
                     }
                 });
-            rhs_value_tok = quote_spanned! { span =>
+            rhs_value_tok = if hashmap_type.is_some() {
+                quote_spanned! { span =>
                 #rhs_value_tok.into_iter().map(#mapper).collect::<::std::collections::HashMap<_, _>>()
+                }
+            } else {
+                quote_spanned! { span =>
+                    #rhs_value_tok.into_iter().map(#mapper).collect::<::std::collections::BTreeMap<_, _>>()
+                }
             };
         } else {
             // Bare type
