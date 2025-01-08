@@ -1,4 +1,4 @@
-use prost_dto::{FromProto, IntoProto};
+use prost_dto::{FromProst, IntoProst};
 
 mod sub {
     pub struct RunAt {
@@ -18,23 +18,23 @@ mod sub {
     }
 }
 
-#[derive(Debug, IntoProto, FromProto)]
-#[proto(target = "sub::Cron")]
+#[derive(Debug, IntoProst, FromProst)]
+#[prost(target = "sub::Cron")]
 pub struct Cron {
     pub pattern: String,
 }
 
-#[derive(Debug, IntoProto, FromProto)]
-#[proto(target = "sub::RunAt")]
+#[derive(Debug, IntoProst, FromProst)]
+#[prost(target = "sub::RunAt")]
 pub struct RunAt {
-    #[proto(name = "run_at")]
+    #[prost(name = "run_at")]
     pub timepoints: Vec<String>,
 }
 
-#[derive(Debug, IntoProto, FromProto)]
-#[proto(target = "sub::Schedule", oneof = "schedule")]
+#[derive(Debug, IntoProst, FromProst)]
+#[prost(target = "sub::Schedule", oneof = "schedule")]
 pub enum Schedule {
-    #[proto(name = "Cron")]
+    #[prost(name = "Cron")]
     Recurring(Cron),
     RunAt(RunAt),
 }

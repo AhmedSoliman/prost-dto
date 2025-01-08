@@ -3,20 +3,20 @@ use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use syn::spanned::Spanned;
 
-use crate::attributes::{Direction, FromProtoFieldInfo, IntoProtoFieldInfo, ProtoFieldInfo, Skip};
+use crate::attributes::{Direction, FromProstFieldInfo, IntoProstFieldInfo, ProstFieldInfo, Skip};
 use crate::utils::{
     extract_inner_type_from_container, hashmap_segment, map_segment, option_segment, vec_segment,
 };
 
-impl ProtoFieldInfo {
+impl ProstFieldInfo {
     pub(crate) fn gen_tokens(
         self,
-        direction: Direction<FromProtoFieldInfo, IntoProtoFieldInfo>,
+        direction: Direction<FromProstFieldInfo, IntoProstFieldInfo>,
     ) -> darling::Result<TokenStream> {
         let span = self.ident.span();
 
         // We use the same field name as the protobuf field name unless the user
-        // specifies a different name via `#[proto(name = "foo"`)]`
+        // specifies a different name via `#[prost(name = "foo"`)]`
         // attribute.
         let our_name = &self.ident();
         let proto_name = &self.name.as_ref().unwrap_or(our_name);
@@ -40,22 +40,22 @@ impl ProtoFieldInfo {
         // How do we map the value?
         // - Option<T>:
         //  - We map the inner value.
-        //  - IntoProto + required: target is not option. we unwrap.
+        //  - IntoProst + required: target is not option. we unwrap.
         //    (.map()).unwrap()
-        //  - FromProto + required: input is not Option. Adding `required` does
+        //  - FromProst + required: input is not Option. Adding `required` does
         //    nothing since into() already handles the T -> Option<T>
         //    conversion.
         //
         // - Vec<T>:
         //  - We map each element
-        //  - IntoProto + required: .into() should handle it.
-        //  - FromProto + required: our_name: incoming.unwrap()
+        //  - IntoProst + required: .into() should handle it.
+        //  - FromProst + required: our_name: incoming.unwrap()
         //
         // - HashMap<K, V>: (Same rules apply to BTreeMap)
         //  - Protobuf's map keys only support scaler types, we only need to map
         //    the values
-        //  - IntoProto + required: .into() should handle it.
-        //  - FromProto + required: our_name: incoming.unwrap()
+        //  - IntoProst + required: .into() should handle it.
+        //  - FromProst + required: our_name: incoming.unwrap()
         //
         // - always add .into() after mapping.
 
@@ -66,11 +66,11 @@ impl ProtoFieldInfo {
         //  - Everything else
         //
         if self.is_skipped() {
-            // skip this field if it is marked with #[proto(skip)]
+            // skip this field if it is marked with #[prost(skip)]
             let tok = match direction {
-                Direction::IntoProto(_) => TokenStream::new(),
-                Direction::FromProto(_) => {
-                    // FromProto: By skipping we initialize with Default value.
+                Direction::IntoProst(_) => TokenStream::new(),
+                Direction::FromProst(_) => {
+                    // FromProst: By skipping we initialize with Default value.
                     quote_spanned! { span =>
                         #dest_field: ::std::default::Default::default(),
                     }
@@ -87,7 +87,7 @@ impl ProtoFieldInfo {
 
         // 1. Do we need to unwrap the input before processing? We do that if
         // the field is `required` and our local type is not `Option<T>` when
-        // converting from proto to rust.
+        // converting from prost to rust.
         if option_type.is_none() && direction.is_from() && self.required {
             rhs_value_tok = quote_spanned! { span =>
                 #rhs_value_tok.unwrap()
@@ -101,7 +101,7 @@ impl ProtoFieldInfo {
             // There is specific case we need to handle. When converting a
             // 'required' field from Proto to Option<T>, we run wrap the input
             // into an option (`Some`) before mapping.
-            if let Direction::FromProto(ref from_field_info) = direction {
+            if let Direction::FromProst(ref from_field_info) = direction {
                 // Always None
                 if from_field_info.always_none {
                     is_set_to_none = true;
@@ -210,7 +210,7 @@ impl ProtoFieldInfo {
     // `mapper(&input)` depends on whether by_ref is set or not.
     fn wrap_with_mapper(
         &self,
-        direction: Direction<FromProtoFieldInfo, IntoProtoFieldInfo>,
+        direction: Direction<FromProstFieldInfo, IntoProstFieldInfo>,
         input: TokenStream,
     ) -> Option<TokenStream> {
         fn gen_mapped_inner(
@@ -232,12 +232,12 @@ impl ProtoFieldInfo {
         }
 
         match direction {
-            Direction::IntoProto(info) if info.map.is_some() => Some(gen_mapped_inner(
+            Direction::IntoProst(info) if info.map.is_some() => Some(gen_mapped_inner(
                 info.map_by_ref,
                 info.map.as_ref().unwrap(),
                 input,
             )),
-            Direction::FromProto(info) if info.map.is_some() => Some(gen_mapped_inner(
+            Direction::FromProst(info) if info.map.is_some() => Some(gen_mapped_inner(
                 info.map_by_ref,
                 info.map.as_ref().unwrap(),
                 input,
@@ -258,8 +258,8 @@ mod tests {
 
     #[track_caller]
     fn gen_tokens_test_helper(
-        field: ProtoFieldInfo,
-        direction: Direction<FromProtoFieldInfo, IntoProtoFieldInfo>,
+        field: ProstFieldInfo,
+        direction: Direction<FromProstFieldInfo, IntoProstFieldInfo>,
         expected: TokenStream,
     ) -> darling::Result<()> {
         let mut acc = Accumulator::default();
@@ -273,28 +273,28 @@ mod tests {
     #[track_caller]
     fn gen_tokens_test_helper_into(
         field: &syn::Field,
-        info: ProtoFieldInfo,
+        info: ProstFieldInfo,
         expected: TokenStream,
     ) -> darling::Result<()> {
-        let direction: Direction<FromProtoFieldInfo, IntoProtoFieldInfo> =
-            Direction::IntoProto(IntoProtoFieldInfo::from_field(field)?);
+        let direction: Direction<FromProstFieldInfo, IntoProstFieldInfo> =
+            Direction::IntoProst(IntoProstFieldInfo::from_field(field)?);
         gen_tokens_test_helper(info, direction, expected)
     }
 
     #[track_caller]
     fn gen_tokens_test_helper_from(
         field: &syn::Field,
-        info: ProtoFieldInfo,
+        info: ProstFieldInfo,
         expected: TokenStream,
     ) -> darling::Result<()> {
-        let direction: Direction<FromProtoFieldInfo, IntoProtoFieldInfo> =
-            Direction::FromProto(FromProtoFieldInfo::from_field(field)?);
+        let direction: Direction<FromProstFieldInfo, IntoProstFieldInfo> =
+            Direction::FromProst(FromProstFieldInfo::from_field(field)?);
         gen_tokens_test_helper(info, direction, expected)
     }
 
-    fn field_from_quote(quote: TokenStream) -> darling::Result<(syn::Field, ProtoFieldInfo)> {
+    fn field_from_quote(quote: TokenStream) -> darling::Result<(syn::Field, ProstFieldInfo)> {
         let field: syn::Field = syn::Field::parse_named.parse2(quote).unwrap();
-        Ok((field.clone(), ProtoFieldInfo::from_field(&field)?))
+        Ok((field.clone(), ProstFieldInfo::from_field(&field)?))
     }
 
     #[test]
@@ -303,10 +303,10 @@ mod tests {
         {
             let (field, field_info) = field_from_quote(quote! { foo: u32 })?;
 
-            // no tokens in IntoProto
+            // no tokens in IntoProst
             gen_tokens_test_helper_into(&field, field_info.clone(), quote! {})?;
 
-            // default in FromProto
+            // default in FromProst
             gen_tokens_test_helper_from(
                 &field,
                 field_info,
@@ -318,10 +318,10 @@ mod tests {
         {
             let (field, field_info) = field_from_quote(quote! { pub _foo: u32 })?;
 
-            // no tokens in IntoProto
+            // no tokens in IntoProst
             gen_tokens_test_helper_into(&field, field_info.clone(), quote! {})?;
 
-            // default in FromProto
+            // default in FromProst
             gen_tokens_test_helper_from(
                 &field,
                 field_info,
@@ -331,12 +331,12 @@ mod tests {
 
         // public but explicity skipped
         {
-            let (field, field_info) = field_from_quote(quote! { #[proto(skip)] pub foo: u32 })?;
+            let (field, field_info) = field_from_quote(quote! { #[prost(skip)] pub foo: u32 })?;
 
-            // no tokens in IntoProto
+            // no tokens in IntoProst
             gen_tokens_test_helper_into(&field, field_info.clone(), quote! {})?;
 
-            // default in FromProto
+            // default in FromProst
             gen_tokens_test_helper_from(
                 &field,
                 field_info,
@@ -360,10 +360,10 @@ mod tests {
             gen_tokens_test_helper_from(&field, field_info, quote! { foo: value.foo.into(), })?;
         }
 
-        // #[proto(required)] bare type
+        // #[prost(required)] bare type
         {
             let (field, field_info) = field_from_quote(quote! {
-                #[proto(required)]
+                #[prost(required)]
                 pub foo: u32
             })?;
 
@@ -375,7 +375,7 @@ mod tests {
                 field_info.clone(),
                 quote! { foo: Some(value.foo.into()), },
             )?;
-            // We unwrap only proto -> rust.
+            // We unwrap only prost -> rust.
             gen_tokens_test_helper_from(
                 &field,
                 field_info,
@@ -383,11 +383,11 @@ mod tests {
             )?;
         }
 
-        // #[proto_from(map)] bare type
+        // #[prost_from(map)] bare type
         {
             // map by value (default)
             let (field, field_info) = field_from_quote(quote! {
-                #[from_proto(map = "String::from")]
+                #[from_prost(map = "String::from")]
                 pub foo: String
             })?;
 
@@ -406,7 +406,7 @@ mod tests {
 
             // by reference
             let (field, field_info) = field_from_quote(quote! {
-                #[from_proto(map = "String::from", map_by_ref)]
+                #[from_prost(map = "String::from", map_by_ref)]
                 pub foo: String
             })?;
 
@@ -418,11 +418,11 @@ mod tests {
             )?;
         }
 
-        // #[into_proto(map)] bare type
+        // #[into_prost(map)] bare type
         {
             // by value (default)
             let (field, field_info) = field_from_quote(quote! {
-                #[into_proto(map = "String::from")]
+                #[into_prost(map = "String::from")]
                 pub foo: u32
             })?;
 
@@ -441,7 +441,7 @@ mod tests {
 
             // by reference
             let (field, field_info) = field_from_quote(quote! {
-                #[into_proto(map="String::from", map_by_ref)]
+                #[into_prost(map="String::from", map_by_ref)]
                 pub foo: String
             })?;
 
@@ -453,16 +453,16 @@ mod tests {
             )?;
         }
 
-        // #[proto(map_into_proto)] bare type with rename
+        // #[prost(map_into_prost)] bare type with rename
         {
             // by value (default)
             let (field, field_info) = field_from_quote(quote! {
-                #[proto(name = "bar")]
-                #[into_proto(map="String::from")]
+                #[prost(name = "bar")]
+                #[into_prost(map="String::from")]
                 pub foo: u32
             })?;
 
-            // FromProto simple rename
+            // FromProst simple rename
             gen_tokens_test_helper_from(
                 &field,
                 field_info.clone(),
@@ -497,21 +497,21 @@ mod tests {
             )?;
         }
 
-        // #[proto(required)] Option<T> type
+        // #[prost(required)] Option<T> type
         {
             let (field, field_info) = field_from_quote(quote! {
-                #[proto(required)]
+                #[prost(required)]
                 pub foo: Option<u32>
             })?;
 
-            // In IntoProto, we assume that the target is not option, so we need
+            // In IntoProst, we assume that the target is not option, so we need
             // to unwrap.
             gen_tokens_test_helper_into(
                 &field,
                 field_info.clone(),
                 quote! { foo: value.foo.map(Into::into).unwrap(), },
             )?;
-            // In FromProto, we wrap the value in Some(v) and map it.
+            // In FromProst, we wrap the value in Some(v) and map it.
             gen_tokens_test_helper_from(
                 &field,
                 field_info,
@@ -519,10 +519,10 @@ mod tests {
             )?;
         }
 
-        // #[from_proto(always_none)] Option<T> type
+        // #[from_prost(always_none)] Option<T> type
         {
             let (field, field_info) = field_from_quote(quote! {
-                #[from_proto(always_none)]
+                #[from_prost(always_none)]
                 pub foo: Option<u32>
             })?;
 
@@ -533,7 +533,7 @@ mod tests {
                 quote! { foo: value.foo.map(Into::into), },
             )?;
 
-            // In FromProto, we always set to None.
+            // In FromProst, we always set to None.
             gen_tokens_test_helper_from(&field, field_info, quote! { foo: None, })?;
         }
         Ok(())
@@ -541,10 +541,10 @@ mod tests {
 
     #[test]
     fn gen_tokens_mapped_option() -> darling::Result<()> {
-        // Map an Option IntoProto
+        // Map an Option IntoProst
         {
             let (field, field_info) = field_from_quote(quote! {
-               #[into_proto(map = "String::from")]
+               #[into_prost(map = "String::from")]
                 pub foo: Option<u32>
             })?;
 
@@ -560,10 +560,10 @@ mod tests {
             )?;
         }
 
-        // Map an Option FromProto
+        // Map an Option FromProst
         {
             let (field, field_info) = field_from_quote(quote! {
-               #[from_proto(map = "String::from")]
+               #[from_prost(map = "String::from")]
                 pub foo: Option<u32>
             })?;
 
@@ -580,10 +580,10 @@ mod tests {
             )?;
         }
 
-        // Map an Option FromProto by reference
+        // Map an Option FromProst by reference
         {
             let (field, field_info) = field_from_quote(quote! {
-               #[from_proto(map="String::from", map_by_ref)]
+               #[from_prost(map="String::from", map_by_ref)]
                 pub foo: Option<u32>
             })?;
 
@@ -594,12 +594,12 @@ mod tests {
             )?;
         }
 
-        // Complex: Map a required Option Into/FromProto
+        // Complex: Map a required Option Into/FromProst
         {
             let (field, field_info) = field_from_quote(quote! {
-               #[proto(required)]
-               #[from_proto(map="String::from", map_by_ref)]
-               #[into_proto(map="AnotherType::from", map_by_ref)]
+               #[prost(required)]
+               #[from_prost(map="String::from", map_by_ref)]
+               #[into_prost(map="AnotherType::from", map_by_ref)]
                 pub foo: Option<u32>
             })?;
 
@@ -609,7 +609,7 @@ mod tests {
                 quote! { foo: value.foo.map(|v| AnotherType::from(&v)).unwrap(), },
             )?;
 
-            // What's coming from proto is _not_ an Option, we cannot apply
+            // What's coming from prost is _not_ an Option, we cannot apply
             // .map()
             gen_tokens_test_helper_from(
                 &field,
@@ -642,7 +642,7 @@ mod tests {
         // Required Vec.
         {
             let (field, field_info) = field_from_quote(quote! {
-                #[proto(required)]
+                #[prost(required)]
                 pub foo: Vec<u32>
             })?;
 
@@ -665,8 +665,8 @@ mod tests {
         // Vec with mapping
         {
             let (field, field_info) = field_from_quote(quote! {
-                #[from_proto(map = "String::from")]
-                #[into_proto(map = "AnotherType::from")]
+                #[from_prost(map = "String::from")]
+                #[into_prost(map = "AnotherType::from")]
                 pub foo: Vec<u32>
             })?;
 
@@ -686,12 +686,12 @@ mod tests {
         // required Vec with mapping by ref
         {
             let (field, field_info) = field_from_quote(quote! {
-                #[proto(required)]
-                #[from_proto(map="String::from",
+                #[prost(required)]
+                #[from_prost(map="String::from",
                    // only from is by ref
                    map_by_ref,
                    )]
-                #[into_proto(map="AnotherType::from")]
+                #[into_prost(map="AnotherType::from")]
                 pub foo: Vec<u32>
             })?;
 

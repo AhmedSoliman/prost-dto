@@ -6,8 +6,8 @@ use syn::{Field, Variant};
 
 #[derive(Debug, Clone)]
 pub(crate) enum Direction<F, I> {
-    FromProto(F),
-    IntoProto(I),
+    FromProst(F),
+    IntoProst(I),
 }
 
 impl<F, I> Direction<F, I>
@@ -16,23 +16,23 @@ where
     I: Clone + Clone,
 {
     pub fn is_into(&self) -> bool {
-        matches!(self, Direction::IntoProto(_))
+        matches!(self, Direction::IntoProst(_))
     }
 
     pub fn is_from(&self) -> bool {
-        matches!(self, Direction::FromProto(_))
+        matches!(self, Direction::FromProst(_))
     }
 
     pub fn with_variant(
         &self,
         variant: &Variant,
-    ) -> darling::Result<Direction<FromProtoVariantInfo, IntoProtoVariantInfo>> {
+    ) -> darling::Result<Direction<FromProstVariantInfo, IntoProstVariantInfo>> {
         Ok(match self {
-            Direction::FromProto(_) => {
-                Direction::FromProto(FromProtoVariantInfo::from_variant(variant)?)
+            Direction::FromProst(_) => {
+                Direction::FromProst(FromProstVariantInfo::from_variant(variant)?)
             }
-            Direction::IntoProto(_) => {
-                Direction::IntoProto(IntoProtoVariantInfo::from_variant(variant)?)
+            Direction::IntoProst(_) => {
+                Direction::IntoProst(IntoProstVariantInfo::from_variant(variant)?)
             }
         })
     }
@@ -40,10 +40,10 @@ where
     pub fn with_field(
         &self,
         field: &Field,
-    ) -> darling::Result<Direction<FromProtoFieldInfo, IntoProtoFieldInfo>> {
+    ) -> darling::Result<Direction<FromProstFieldInfo, IntoProstFieldInfo>> {
         Ok(match self {
-            Direction::FromProto(_) => Direction::FromProto(FromProtoFieldInfo::from_field(field)?),
-            Direction::IntoProto(_) => Direction::IntoProto(IntoProtoFieldInfo::from_field(field)?),
+            Direction::FromProst(_) => Direction::FromProst(FromProstFieldInfo::from_field(field)?),
+            Direction::IntoProst(_) => Direction::IntoProst(IntoProstFieldInfo::from_field(field)?),
         })
     }
 }
@@ -51,16 +51,16 @@ where
 impl<A, B> Display for Direction<A, B> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Direction::FromProto(_) => write!(f, "FromProto"),
-            Direction::IntoProto(_) => write!(f, "IntoProto"),
+            Direction::FromProst(_) => write!(f, "FromProst"),
+            Direction::IntoProst(_) => write!(f, "IntoProst"),
         }
     }
 }
 
-// Attributes for struct/enum level #[proto(...)]
+// Attributes for struct/enum level #[prost(...)]
 #[derive(Debug, Clone, FromDeriveInput)]
-#[darling(attributes(proto), supports(struct_named, enum_newtype, enum_unit))]
-pub(crate) struct ProtoInfo {
+#[darling(attributes(prost), supports(struct_named, enum_newtype, enum_unit))]
+pub(crate) struct ProstInfo {
     pub ident: syn::Ident,
     pub target: syn::Path,
     pub oneof: Option<syn::Ident>,
@@ -69,69 +69,69 @@ pub(crate) struct ProtoInfo {
     pub non_exhaustive: SpannedValue<bool>,
 }
 
-// Attributes for struct/enum level #[from_proto(...)]
+// Attributes for struct/enum level #[from_prost(...)]
 #[derive(Debug, Clone, FromDeriveInput)]
 #[darling(
-    attributes(from_proto),
+    attributes(from_prost),
     supports(struct_named, enum_newtype, enum_unit)
 )]
-pub(crate) struct FromProtoInfo {
+pub(crate) struct FromProstInfo {
     // Reserved for future use.
 }
 
-// Attributes for struct/enum level #[into_proto(...)]
+// Attributes for struct/enum level #[into_prost(...)]
 #[derive(Debug, Clone, FromDeriveInput)]
 #[darling(
-    attributes(into_proto),
+    attributes(into_prost),
     supports(struct_named, enum_newtype, enum_unit)
 )]
-pub(crate) struct IntoProtoInfo {
+pub(crate) struct IntoProstInfo {
     // Reserved for future use.
 }
 
-// Attributes for enum-variant level #[proto(...)]
+// Attributes for enum-variant level #[prost(...)]
 // This one is used for common attributes across from and into.
 #[derive(Debug, Clone, FromVariant)]
-#[darling(attributes(proto))]
-pub(crate) struct ProtoVariantInfo {
+#[darling(attributes(prost))]
+pub(crate) struct ProstVariantInfo {
     // automatically populated by darling
     pub ident: syn::Ident,
-    pub fields: darling::ast::Fields<ProtoEnumFieldInfo>,
-    // our proto variant attributes
+    pub fields: darling::ast::Fields<ProstEnumFieldInfo>,
+    // our prost variant attributes
     #[darling(default)]
     pub name: Option<syn::Ident>,
     #[darling(default)]
     pub skip: bool,
 }
-// Attributes for enum-variant level #[from_proto(...)]
+// Attributes for enum-variant level #[from_prost(...)]
 #[derive(Debug, Clone, FromVariant)]
-#[darling(attributes(from_proto))]
-pub(crate) struct FromProtoVariantInfo {
+#[darling(attributes(from_prost))]
+pub(crate) struct FromProstVariantInfo {
     // Reserved for future use.
 }
-// Attributes for enum-variant level #[into_proto(...)]
+// Attributes for enum-variant level #[into_prost(...)]
 #[derive(Debug, Clone, FromVariant)]
-#[darling(attributes(into_proto))]
-pub(crate) struct IntoProtoVariantInfo {
+#[darling(attributes(into_prost))]
+pub(crate) struct IntoProstVariantInfo {
     // Reserved for future use.
 }
 
 #[derive(Debug, Clone, FromField)]
-#[darling(attributes(proto))]
-pub(crate) struct ProtoEnumFieldInfo {
+#[darling(attributes(prost))]
+pub(crate) struct ProstEnumFieldInfo {
     // Reserved for future use.
 }
 
-// Attributes for struct-field level #[proto(...)]
+// Attributes for struct-field level #[prost(...)]
 #[derive(Debug, Clone, FromField)]
-#[darling(attributes(proto))]
-pub(crate) struct ProtoFieldInfo {
+#[darling(attributes(prost))]
+pub(crate) struct ProstFieldInfo {
     // automatically populated by darling
     pub ident: Option<syn::Ident>,
     pub vis: syn::Visibility,
     pub ty: syn::Type,
 
-    // our proto field attributes
+    // our prost field attributes
     #[darling(default)]
     pub skip: bool,
     #[darling(default)]
@@ -140,7 +140,7 @@ pub(crate) struct ProtoFieldInfo {
     pub required: bool,
 }
 
-impl ProtoFieldInfo {
+impl ProstFieldInfo {
     // We only support structs with named fields (no tuples) so we can safely
     // unwrap ident.
     pub fn ident(&self) -> &syn::Ident {
@@ -148,12 +148,12 @@ impl ProtoFieldInfo {
     }
 }
 
-// Attributes for struct-field level #[from_proto(...)]
+// Attributes for struct-field level #[from_prost(...)]
 #[derive(Debug, Clone, FromField)]
-#[darling(attributes(from_proto))]
-pub(crate) struct FromProtoFieldInfo {
+#[darling(attributes(from_prost))]
+pub(crate) struct FromProstFieldInfo {
     #[darling(default)]
-    // Always set the value to None (if must be Option<T>) in FromProto
+    // Always set the value to None (if must be Option<T>) in FromProst
     // conversion, effectively making this a read-only field.
     pub always_none: bool,
 
@@ -163,10 +163,10 @@ pub(crate) struct FromProtoFieldInfo {
     pub map_by_ref: SpannedValue<bool>,
 }
 
-// Attributes for struct-field level #[into_proto(...)]
+// Attributes for struct-field level #[into_prost(...)]
 #[derive(Debug, Clone, FromField)]
-#[darling(attributes(into_proto))]
-pub(crate) struct IntoProtoFieldInfo {
+#[darling(attributes(into_prost))]
+pub(crate) struct IntoProstFieldInfo {
     #[darling(default)]
     pub map: Option<syn::Path>,
     #[darling(default)]
@@ -177,7 +177,7 @@ pub(crate) trait Skip {
     fn is_skipped(&self) -> bool;
 }
 
-impl Skip for ProtoFieldInfo {
+impl Skip for ProstFieldInfo {
     // We automatically skip non-public fields and fields that start with
     // '_' as both indicate that the field is not part of the public
     // API.
@@ -190,25 +190,25 @@ impl Skip for ProtoFieldInfo {
     }
 }
 
-impl Skip for ProtoVariantInfo {
+impl Skip for ProstVariantInfo {
     fn is_skipped(&self) -> bool {
         self.skip
     }
 }
 
-#[allow(unused)]
-#[derive(Debug, Clone, FromField)]
-#[darling(attributes(prost), forward_attrs(doc), allow_unknown_fields)]
-pub(crate) struct ProstFieldInfo {
-    // automatically populated by darling
-    pub ident: Option<syn::Ident>,
-    pub vis: syn::Visibility,
-    pub ty: syn::Type,
-
-    pub attrs: Vec<syn::Attribute>,
-    is_enumeration: Option<syn::Path>,
-    #[darling(default, rename = "message")]
-    is_message: bool,
-    #[darling(default, rename = "optional")]
-    is_optional: bool,
-}
+// #[allow(unused)]
+// #[derive(Debug, Clone, FromField)]
+// #[darling(attributes(prost), forward_attrs(doc), allow_unknown_fields)]
+// pub(crate) struct ProstFieldInfo {
+//     // automatically populated by darling
+//     pub ident: Option<syn::Ident>,
+//     pub vis: syn::Visibility,
+//     pub ty: syn::Type,
+//
+//     pub attrs: Vec<syn::Attribute>,
+//     is_enumeration: Option<syn::Path>,
+//     #[darling(default, rename = "message")]
+//     is_message: bool,
+//     #[darling(default, rename = "optional")]
+//     is_optional: bool,
+// }

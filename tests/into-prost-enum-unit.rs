@@ -1,4 +1,4 @@
-use prost_dto::IntoProto;
+use prost_dto::IntoProst;
 
 mod sub {
     #[repr(i32)]
@@ -9,8 +9,8 @@ mod sub {
     }
 }
 
-#[derive(IntoProto)]
-#[proto(target = "sub::HttpMethod")]
+#[derive(IntoProst)]
+#[prost(target = "sub::HttpMethod")]
 pub enum HttpMethod {
     Get,
     Post,

@@ -1,4 +1,4 @@
-use prost_dto::FromProto;
+use prost_dto::FromProst;
 
 mod sub {
     pub struct Output {
@@ -6,10 +6,10 @@ mod sub {
     }
 }
 
-#[derive(FromProto)]
-#[proto(target = "sub::Output")]
+#[derive(FromProst)]
+#[prost(target = "sub::Output")]
 pub struct Output {
-    #[from_proto(map = "perform")]
+    #[from_prost(map = "perform")]
     pub name: String,
 }
 

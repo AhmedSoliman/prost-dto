@@ -6,13 +6,13 @@ use syn::spanned::Spanned;
 use syn::{DataEnum, DataStruct, DeriveInput};
 
 use crate::attributes::{
-    Direction, FromProtoInfo, IntoProtoInfo, ProtoFieldInfo, ProtoInfo, ProtoVariantInfo,
+    Direction, FromProstInfo, IntoProstInfo, ProstFieldInfo, ProstInfo, ProstVariantInfo,
 };
 use crate::utils::{to_pascal_case, to_snake_case};
 
 pub(crate) fn expand_proto_conv(
-    direction: Direction<FromProtoInfo, IntoProtoInfo>,
-    info: ProtoInfo,
+    direction: Direction<FromProstInfo, IntoProstInfo>,
+    info: ProstInfo,
     input: DeriveInput,
 ) -> darling::Result<TokenStream> {
     // match if this is a struct or an enum
@@ -27,15 +27,15 @@ pub(crate) fn expand_proto_conv(
 }
 
 fn expand_struct(
-    direction: Direction<FromProtoInfo, IntoProtoInfo>,
-    info: ProtoInfo,
+    direction: Direction<FromProstInfo, IntoProstInfo>,
+    info: ProstInfo,
     struct_data: DataStruct,
 ) -> Result<TokenStream, Error> {
     // error accumulator
     let mut acc = darling::Error::accumulator();
     let mut field_tokens = Vec::with_capacity(struct_data.fields.len());
     for field in struct_data.fields {
-        let Some(field_info) = acc.handle(ProtoFieldInfo::from_field(&field)) else {
+        let Some(field_info) = acc.handle(ProstFieldInfo::from_field(&field)) else {
             continue;
         };
         // direction-wise #[direction_proto(..)] attributes
@@ -49,8 +49,8 @@ fn expand_struct(
     }
 
     let (from_type, for_type) = match direction {
-        Direction::FromProto(_) => (info.target.to_token_stream(), info.ident.to_token_stream()),
-        Direction::IntoProto(_) => (info.ident.to_token_stream(), info.target.to_token_stream()),
+        Direction::FromProst(_) => (info.target.to_token_stream(), info.ident.to_token_stream()),
+        Direction::IntoProst(_) => (info.ident.to_token_stream(), info.target.to_token_stream()),
     };
 
     let tokens = quote! {
@@ -69,8 +69,8 @@ fn expand_struct(
 }
 
 fn expand_enum(
-    direction: Direction<FromProtoInfo, IntoProtoInfo>,
-    info: ProtoInfo,
+    direction: Direction<FromProstInfo, IntoProstInfo>,
+    info: ProstInfo,
     enum_data: DataEnum,
 ) -> Result<TokenStream, Error> {
     // We cheat by looking at the first variant to determine whether this is a
@@ -84,8 +84,8 @@ fn expand_enum(
 }
 
 fn expand_non_unit_enum(
-    direction: Direction<FromProtoInfo, IntoProtoInfo>,
-    info: ProtoInfo,
+    direction: Direction<FromProstInfo, IntoProstInfo>,
+    info: ProstInfo,
     enum_data: DataEnum,
 ) -> Result<TokenStream, Error> {
     // error accumulator
@@ -142,15 +142,15 @@ fn expand_non_unit_enum(
     };
 
     let (source_type, target_type) = match direction {
-        Direction::FromProto(_) => (fully_qualified_oneof_type, quote! {Self}),
-        Direction::IntoProto(_) => (info.ident.to_token_stream(), fully_qualified_oneof_type),
+        Direction::FromProst(_) => (fully_qualified_oneof_type, quote! {Self}),
+        Direction::IntoProst(_) => (info.ident.to_token_stream(), fully_qualified_oneof_type),
     };
 
     let mut variant_tokens: Vec<_> = Vec::with_capacity(enum_data.variants.len());
 
     for variant in enum_data.variants {
         // general #[proto(..)] attributes
-        let Some(variant_info) = acc.handle(ProtoVariantInfo::from_variant(&variant)) else {
+        let Some(variant_info) = acc.handle(ProstVariantInfo::from_variant(&variant)) else {
             continue;
         };
 
@@ -179,12 +179,12 @@ fn expand_non_unit_enum(
     }
 
     let (from_type, for_type) = match direction {
-        Direction::FromProto(_) => (info.target.to_token_stream(), info.ident.to_token_stream()),
-        Direction::IntoProto(_) => (info.ident.to_token_stream(), info.target.to_token_stream()),
+        Direction::FromProst(_) => (info.target.to_token_stream(), info.ident.to_token_stream()),
+        Direction::IntoProst(_) => (info.ident.to_token_stream(), info.target.to_token_stream()),
     };
 
     let body = match direction {
-        Direction::IntoProto(_) => {
+        Direction::IntoProst(_) => {
             quote! {
                 let o = match value {
                     #(#variant_tokens)*
@@ -194,7 +194,7 @@ fn expand_non_unit_enum(
                 }
             }
         }
-        Direction::FromProto(_) => {
+        Direction::FromProst(_) => {
             quote! {
                 match value.#oneof_ident.unwrap() {
                     #(#variant_tokens)*
@@ -217,8 +217,8 @@ fn expand_non_unit_enum(
 }
 
 fn expand_unit_only_enum(
-    direction: Direction<FromProtoInfo, IntoProtoInfo>,
-    info: ProtoInfo,
+    direction: Direction<FromProstInfo, IntoProstInfo>,
+    info: ProstInfo,
     enum_data: DataEnum,
 ) -> Result<TokenStream, Error> {
     // error accumulator
@@ -226,12 +226,12 @@ fn expand_unit_only_enum(
     let mut variant_tokens: Vec<_> = Vec::with_capacity(enum_data.variants.len());
 
     let (from_type, for_type) = match direction {
-        Direction::FromProto(_) => (info.target.to_token_stream(), info.ident.to_token_stream()),
-        Direction::IntoProto(_) => (info.ident.to_token_stream(), info.target.to_token_stream()),
+        Direction::FromProst(_) => (info.target.to_token_stream(), info.ident.to_token_stream()),
+        Direction::IntoProst(_) => (info.ident.to_token_stream(), info.target.to_token_stream()),
     };
 
     for variant in enum_data.variants {
-        let Some(variant_info) = acc.handle(ProtoVariantInfo::from_variant(&variant)) else {
+        let Some(variant_info) = acc.handle(ProstVariantInfo::from_variant(&variant)) else {
             continue;
         };
         // direction-wise #[direction_proto(..)] attributes
@@ -257,7 +257,7 @@ fn expand_unit_only_enum(
     }
 
     let tokens = match direction {
-        Direction::IntoProto(_) => {
+        Direction::IntoProst(_) => {
             quote! {
                 #[automatically_derived]
                 #[allow(clippy::all)]
@@ -282,7 +282,7 @@ fn expand_unit_only_enum(
                 }
             }
         }
-        Direction::FromProto(_) => {
+        Direction::FromProst(_) => {
             quote! {
 
             #[automatically_derived]
