@@ -299,37 +299,7 @@ mod tests {
 
     #[test]
     fn gen_tokens_skipped() -> darling::Result<()> {
-        // non-pub
-        {
-            let (field, field_info) = field_from_quote(quote! { foo: u32 })?;
-
-            // no tokens in IntoProst
-            gen_tokens_test_helper_into(&field, field_info.clone(), quote! {})?;
-
-            // default in FromProst
-            gen_tokens_test_helper_from(
-                &field,
-                field_info,
-                quote! { foo: ::std::default::Default::default(), },
-            )?;
-        }
-
-        // public but starts with _
-        {
-            let (field, field_info) = field_from_quote(quote! { pub _foo: u32 })?;
-
-            // no tokens in IntoProst
-            gen_tokens_test_helper_into(&field, field_info.clone(), quote! {})?;
-
-            // default in FromProst
-            gen_tokens_test_helper_from(
-                &field,
-                field_info,
-                quote! { _foo: ::std::default::Default::default(), },
-            )?;
-        }
-
-        // public but explicity skipped
+        // explicity skipped
         {
             let (field, field_info) = field_from_quote(quote! { #[prost(skip)] pub foo: u32 })?;
 

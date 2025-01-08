@@ -128,7 +128,6 @@ pub(crate) struct ProstEnumFieldInfo {
 pub(crate) struct ProstFieldInfo {
     // automatically populated by darling
     pub ident: Option<syn::Ident>,
-    pub vis: syn::Visibility,
     pub ty: syn::Type,
 
     // our prost field attributes
@@ -178,15 +177,8 @@ pub(crate) trait Skip {
 }
 
 impl Skip for ProstFieldInfo {
-    // We automatically skip non-public fields and fields that start with
-    // '_' as both indicate that the field is not part of the public
-    // API.
-    //
-    // pub(X). aka 'restricted' will still be included.
     fn is_skipped(&self) -> bool {
         self.skip
-            || self.ident().to_string().starts_with('_')
-            || self.vis == syn::Visibility::Inherited
     }
 }
 
@@ -195,20 +187,3 @@ impl Skip for ProstVariantInfo {
         self.skip
     }
 }
-
-// #[allow(unused)]
-// #[derive(Debug, Clone, FromField)]
-// #[darling(attributes(prost), forward_attrs(doc), allow_unknown_fields)]
-// pub(crate) struct ProstFieldInfo {
-//     // automatically populated by darling
-//     pub ident: Option<syn::Ident>,
-//     pub vis: syn::Visibility,
-//     pub ty: syn::Type,
-//
-//     pub attrs: Vec<syn::Attribute>,
-//     is_enumeration: Option<syn::Path>,
-//     #[darling(default, rename = "message")]
-//     is_message: bool,
-//     #[darling(default, rename = "optional")]
-//     is_optional: bool,
-// }

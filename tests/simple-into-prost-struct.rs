@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use prost_dto::IntoProst;
 
 mod sub {
@@ -7,6 +9,7 @@ mod sub {
         pub limit: u64,
         pub remaining: u64,
         pub data: Vec<String>,
+        pub internal: String,
     }
 }
 
