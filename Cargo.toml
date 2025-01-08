@@ -11,7 +11,7 @@ description = "Data transfer object conversion macros for prost"
 documentation = "https://docs.rs/prost-dto"
 repository = "https://github.com/AhmedSoliman/prost-dto"
 homepage = "https://github.com/AhmedSoliman/prost-dto"
-rust-version = "1.75.0"
+rust-version = "1.81.0"
 
 [workspace.dependencies]
 prost-dto-core = { path = "prost-dto-core", version = "0.0.3" }
