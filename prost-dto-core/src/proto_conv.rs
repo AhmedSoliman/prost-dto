@@ -1,7 +1,7 @@
 use darling::util::path_to_string;
 use darling::{Error, FromField, FromVariant};
 use proc_macro2::{Ident, TokenStream};
-use quote::{format_ident, quote, quote_spanned, ToTokens};
+use quote::{ToTokens, format_ident, quote, quote_spanned};
 use syn::spanned::Spanned;
 use syn::{DataEnum, DataStruct, DeriveInput};
 

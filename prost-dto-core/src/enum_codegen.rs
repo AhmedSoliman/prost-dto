@@ -42,8 +42,8 @@ impl ProstVariantInfo {
 
 #[cfg(test)]
 mod tests {
-    use darling::error::Accumulator;
     use darling::FromVariant;
+    use darling::error::Accumulator;
     use pretty_assertions::assert_eq;
     use quote::quote;
     use syn::parse_quote;

@@ -4,18 +4,23 @@ resolver = "2"
 
 [workspace.package]
 license = "BSD-2-Clause"
-version = "0.0.3"
-edition = "2021"
+version = "0.0.4"
+edition = "2024"
 authors = ["Ahmed Farghal <me@asoli.dev>", "Mohamed Bassem <me@mbassem.com>"]
 description = "Data transfer object conversion macros for prost"
 documentation = "https://docs.rs/prost-dto"
 repository = "https://github.com/AhmedSoliman/prost-dto"
 homepage = "https://github.com/AhmedSoliman/prost-dto"
-rust-version = "1.81.0"
+rust-version = "1.89.0"
 
 [workspace.dependencies]
-prost-dto-core = { path = "prost-dto-core", version = "0.0.3" }
-prost-dto-derive = { path = "prost-dto-derive", version = "0.0.3" }
+prost-dto-core = { path = "prost-dto-core" }
+prost-dto-derive = { path = "prost-dto-derive" }
+
+syn = { version = "2.0", default-features = false }
+darling = { version = "0.21" }
+proc-macro2 = { version = "1.0" }
+quote = { version = "1.0" }
 
 [package]
 name = "prost-dto"
@@ -37,6 +42,7 @@ path = "tests/tests.rs"
 # Internal dependencies
 prost-dto-core = { workspace = true }
 prost-dto-derive = { workspace = true }
+
 
 [dev-dependencies]
 trybuild = { version = "1.0", features = ["diff"] }
