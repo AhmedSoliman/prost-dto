@@ -249,8 +249,8 @@ impl ProstFieldInfo {
 
 #[cfg(test)]
 mod tests {
-    use darling::error::Accumulator;
     use darling::FromField;
+    use darling::error::Accumulator;
     use pretty_assertions::assert_eq;
     use syn::parse::Parser;
 

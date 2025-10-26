@@ -1,5 +1,5 @@
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, DeriveInput};
+use syn::{DeriveInput, parse_macro_input};
 
 #[proc_macro_derive(IntoProst, attributes(prost, into_prost))]
 pub fn derive_into_prost(input: TokenStream) -> TokenStream {
