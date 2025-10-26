@@ -14,8 +14,8 @@ homepage = "https://github.com/AhmedSoliman/prost-dto"
 rust-version = "1.89.0"
 
 [workspace.dependencies]
-prost-dto-core = { path = "prost-dto-core" }
-prost-dto-derive = { path = "prost-dto-derive" }
+prost-dto-core = { path = "prost-dto-core", version = "0.0.4" }
+prost-dto-derive = { path = "prost-dto-derive", version = "0.0.4" }
 
 syn = { version = "2.0", default-features = false }
 darling = { version = "0.21" }
