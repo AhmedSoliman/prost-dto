@@ -18,7 +18,7 @@ prost-dto-core = { path = "prost-dto-core", version = "0.0.4" }
 prost-dto-derive = { path = "prost-dto-derive", version = "0.0.4" }
 
 syn = { version = "2.0", default-features = false }
-darling = { version = "0.21" }
+darling = { version = "0.22" }
 proc-macro2 = { version = "1.0" }
 quote = { version = "1.0" }
 
